@@ -1,0 +1,22 @@
+{
+  "name": "engsoccerdata-vis",
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "three.js": "threejs#*",
+    "jquery": "^3.1.0",
+    "d3": "^4.1.1",
+    "lodash": "^4.13.1",
+    "stats.js": "*",
+    "spin.js": "spinjs#^2.3.2"
+  }
+}

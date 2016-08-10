@@ -38,8 +38,6 @@ obj3d.position.z = -10;
 
 scene.add( obj3d );
 
-var useControls = false;
-
 var lineMaterial = new THREE.LineBasicMaterial({
     color: 0xaaaabb
 });
@@ -62,7 +60,7 @@ var rankScale = d3.scalePow()
     .rangeRound([0, 23*5])
 ;
 
-camera.position.x = rankScale(12.5) ;//;
+camera.position.x = rankScale(12.5) ;
 
 var lineGeometries = [];
 var mergeGeometry = new THREE.Geometry();
@@ -73,14 +71,11 @@ var allTeams = [];
 function loadData(data) {
 
     spinner.stop();
-    console.log('data', data);
     var vx, vy, vz;
 
     _.forOwn(data, function(v, k) {
         allTeams.push(k);
     });
-
-    console.log('All teams', allTeams);
 
     allTeams.forEach(function(k) {
         teamToTier[k] = {};
@@ -91,23 +86,19 @@ function loadData(data) {
         data[k].forEach(function(d, i) {
 
             if (+d.currentday == lastDay) {
-                teamToTier[k][d.Season] = {tier: d.tier, finalRank: d.Pos};
+                teamToTier[k][d.Season] = {tier: d.tier, finalRank: d.rank};
             }
 
-            if (i === 0) {
-                vz = timeScale(d.Season, d.currentday);
-                vy = verticalScale(d.tier);
-                vx = rankScale(+d.Pos);
+            vz = timeScale(d.Season, d.currentday);
+            vy = verticalScale(d.tier);
+            vx = rankScale(+d.rank);
 
+            if (i === 0) {
                 vxold = vx;
                 vyold = vy;
                 vzold = vz;
-                return true;
+                return ;
             }
-
-            vz = - (300 * (+d.Season - 1995) + d.currentday);
-            vy = verticalScale(d.tier);
-            vx = rankScale(+d.Pos);
 
             var lineSegment =
                 new THREE.LineCurve3(
@@ -116,7 +107,7 @@ function loadData(data) {
                 );
 
             if (Math.abs(vy - vyold) > 1e-2) {
-                nsamples = 256; //64
+                nsamples = 256;
             } else {
                 nsamples = 2;
             }
@@ -136,10 +127,8 @@ function loadData(data) {
 
         lineGeometries[k] = lg;
         var line = new THREE.Line( lg, lineMaterial );
-        //console.log('line', line);
         mergeGeometry.merge(line.geometry, line.matrix);
     });
-
 
         selectBox = document.getElementById("teamSelect");
         selectBox.style.position = 'fixed';
@@ -155,7 +144,7 @@ function loadData(data) {
             option.text = team;
             option.value = team;
             selectBox.add(option);
-        })
+        });
 
     $(document).on('change', '#teamSelect', function(e) {
         var selectedTeam = this.options[e.target.selectedIndex].text;
@@ -163,45 +152,27 @@ function loadData(data) {
         onTeamSelectChange(selectedTeam);
     });
 
-    //selectBox.onchange = function(value) {
-    //    onTeamSelectChange(value);
-    //}
-
     document.body.appendChild(selectBox);
-
-    //loadSky('../engsoccerdata/images/gradient_blue_1.jpg');
 
     var mergeMesh = new THREE.Line(mergeGeometry, lineMaterial);
     scene.add( mergeMesh );
     renderer.render(scene, camera);
 }
 
-function loadSky(url) {
-
-    var loader = new THREE.TextureLoader();
-    loader.load(url, function (texture) {
-        var g = new THREE.SphereGeometry(90000, 20, 20);
-        var m = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
-        var mesh = new THREE.Mesh(g, m);
-
-        //mesh.rotation.y = 270 * Math.PI/180;
-
-        mesh.scale.set(-1, 1, 1);
-        scene.add(mesh);
-    });
-};
 
 function onTeamSelectChange(value) {
     main(value);
 }
 
 
+var coloredLineMaterial = new THREE.LineBasicMaterial({
+    color: 0xffeda0,
+    linewidth: 10
+});
+
 function main(theTeam) {
 
-//    var theTeam = 'Nottingham Forest';
-
     if (highlightedLine) {
-        console.log('highlighted line dispose')
         var g = highlightedLine.geometry;
         var m = highlightedLine.material;
 
@@ -221,16 +192,16 @@ function main(theTeam) {
 
     cameraTrack = [];
 
-
     for(var i=0; i<lineGeometry.vertices.length; i += time_resolution) {
+        var dy;
         if (i + time_resolution < lineGeometry.vertices.length) {
-            var dy = lineGeometry.vertices[i+time_resolution].y - lineGeometry.vertices[i].y;
+            dy = lineGeometry.vertices[i+time_resolution].y - lineGeometry.vertices[i].y;
         } else {
-            var dy = 0.0;
+            dy = 0.0;
         }
 
+        var v;
         if ( Math.abs(dy) > 1e-2) {
-            console.log('increasampling rate');
             for (var j = 0; j < time_resolution; j++ ) {
                 v = lineGeometry.vertices[i + j];
             }
@@ -240,34 +211,19 @@ function main(theTeam) {
         cameraTrack.push(new THREE.Vector3(v.x, v.y + cameraVerticalOffset, v.z));
     }
 
-    var coloredLineMaterial = new THREE.LineBasicMaterial({
-        color: 0xffeda0,
-        linewidth: 10
-    });
-
     highlightedLine = new THREE.Line(lineGeometry, coloredLineMaterial);
 
     scene.add(highlightedLine);
     console.log(lineGeometry.vertices.length);
 
-
     var idx = 0;
-    var nsteps = lineGeometry.vertices.length;
     var frameCount = 0;
     function render() {
         time = (Date.now() - time_start)/1000;
-        //camera.rotation.y = time;
         if (frameCount % frame_resolution === 0) {
-
             var v = cameraTrack[idx];
-            //console.log('v', v);
-
-            if (! useControls) {
-                camera.position.z = v.z;
-                camera.position.y = v.y + 10;
-            }
-
-//            camera.lookAt(v);
+            camera.position.z = v.z;
+            camera.position.y = v.y + 10;
             idx += 1;
         }
         frameCount += 1;
@@ -281,9 +237,6 @@ function main(theTeam) {
 
     function animate() {
         requestAnimationFrame(animate);
-        if (useControls) {
-            controls.update();
-        }
         render();
         stats.update();
     }
@@ -307,7 +260,6 @@ function main(theTeam) {
 
         var geometry = new THREE.PlaneGeometry(80, 60, 32, 32);
 
-        var material = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
         billboard = new THREE.Mesh(geometry, material1);
         billboard.position.y = params.v.y;
         billboard.position.z = params.v.z;
@@ -336,30 +288,6 @@ function main(theTeam) {
     animate();
 }
 
-
-var opts = {
-    lines: 13 // The number of lines to draw
-    , length: 28 // The length of each line
-    , width: 14 // The line thickness
-    , radius: 42 // The radius of the inner circle
-    , scale: 1 // Scales overall size of the spinner
-    , corners: 1 // Corner roundness (0..1)
-    , color: '#000' // #rgb or #rrggbb or array of colors
-    , opacity: 0.6 // Opacity of the lines
-    , rotate: 0 // The rotation offset
-    , direction: 1 // 1: clockwise, -1: counterclockwise
-    , speed: 1 // Rounds per second
-    , trail: 60 // Afterglow percentage
-    , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
-    , zIndex: 2e9 // The z-index (defaults to 2000000000)
-    , className: 'spinner' // The CSS class to assign to the spinner
-    , top: '50%' // Top position relative to parent
-    , left: '50%' // Left position relative to parent
-    , shadow: false // Whether to render a shadow
-    , hwaccel: false // Whether to use hardware acceleration
-    , position: 'absolute' // Element positioning
-}
-
 var opts = {
     lines: 13 // The number of lines to draw
     , length: 28 // The length of each line
@@ -381,8 +309,9 @@ var opts = {
     , shadow: false // Whether to render a shadow
     , hwaccel: false // Whether to use hardware acceleration
     , position: 'absolute' // Element positioning
-}
-var target = document.getElementById('container')
+};
+
+var target = document.getElementById('container');
 spinner = new Spinner(opts).spin(target);
-$.getJSON('../engsoccerdata/data/engsoccerdataCumulativeStandingsGroupedByTeam.json', loadData);
+$.getJSON('../data/engsoccerdataCumulativeStandingsGroupedByTeam.json', loadData);
 
