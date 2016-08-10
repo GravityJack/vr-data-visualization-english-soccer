@@ -5,10 +5,8 @@ A live version of the app is available at
 http://vr-data-vis.herokuapp.com/engsoccerdata/index.html
 
 # Usage
-After cloning the repo, the app can be built using
+After cloning the repo, install the necessary libraries using `bower`:
 ```
-npm install
 bower install
-gulp minify-js
 ```
 
